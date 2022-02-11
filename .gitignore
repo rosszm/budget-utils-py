@@ -1,2 +1,4 @@
 .vscode/
-*/service_account.json
+env/
+credentials/
+config.json
