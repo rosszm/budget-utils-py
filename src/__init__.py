@@ -1,7 +1,6 @@
 __version__ = "0.1.0"
 
 from datetime import datetime
-from decimal import Decimal
 import pathlib, json, time, concurrent.futures
 import gspread, pandas as pd
 
@@ -27,7 +26,7 @@ def parse_datetime_from_title(title: str) -> datetime | None:
         title: the title of a worksheet
 
     Returns:
-        The datetime if it can be parsed; otherwise None.
+        The datetime if it can be parsed; otherwise `None`.
     """
     try:
         return datetime.strptime(title, "%b%Y")
@@ -38,11 +37,13 @@ def parse_datetime_from_title(title: str) -> datetime | None:
             return None
 
 
-def parse_money(money: str) -> Decimal:
+def parse_money(money: str) -> float:
     """ 
-    Parses a decimal value from a string representing an amount of money.
+    Parses a decimal value from a string representing an amount of money. Note `float` is not ideal
+    for representing money values, however, it simplifies operations and is accurate enough for 
+    the purpose of the program.
     """
-    return Decimal(money.strip('$').replace(',', ''))
+    return float(money.strip('$').replace(',', ''))
 
 
 def month_df_from_wks(wks: gspread.Worksheet) -> pd.DataFrame | None:
@@ -54,7 +55,7 @@ def month_df_from_wks(wks: gspread.Worksheet) -> pd.DataFrame | None:
         wks: the google sheets worksheet
     
     Returns:
-        A pandas dataframe containing the monthly rent data as a single row if the worksheet tile
+        A pandas dataframe containing the monthly rent data as a single row if the worksheet title
         is valid; otherwise `None`.
     """
     dt = parse_datetime_from_title(wks.title)
@@ -69,7 +70,7 @@ def month_df_from_wks(wks: gspread.Worksheet) -> pd.DataFrame | None:
     if dt >= GROCERY_START_DATE:
         df["Groceries"] = [parse_money(groceries[0][0])]
 
-    df.index = [dt] # datetime as index; this may need to change
+    df.index = [dt] # use datetime as index
     return df
 
 
@@ -96,7 +97,7 @@ def rent_df_from_spreadsheet() -> pd.DataFrame:
     rent_sheet = client.open_by_key(SHEET_KEY)
     worksheets = rent_sheet.worksheets()
     
-    # get the data from each worksheet asynchronously
+    # get the data from worksheets concurrently
     with concurrent.futures.ThreadPoolExecutor() as executor:
         month_futures = {executor.submit(month_df_from_wks, wks) for wks in worksheets}
         df = pd.DataFrame()
@@ -109,9 +110,18 @@ def rent_df_from_spreadsheet() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    # time how long it takes to retrieve the dataframe
     t0 = time.time()
     df = rent_df_from_spreadsheet()
     t1 = time.time()
-    print("elapsed:", t1-t0)
-    print(df)
+    print("elapsed:", t1-t0, '\n')
 
+    print("All Rent Data:")
+    print(df.sort_index(ascending=False), '\n')
+
+    print("2021 Rent Data:")
+    print(df.groupby("Year").get_group(2021).sort_index(ascending=False), '\n')
+
+    energy_plt = df.pivot(index="Month", columns="Year", values="Power")
+    print("Monthy Energy Costs:")
+    print(energy_plt, '\n')
