@@ -10,9 +10,4 @@ Functionality
 =============
 
 * Retrieve rent data from Google sheets spreadsheets
-
-TO-DO
------
-
-* Use regression analysis to estimate future expenses
-* Generate charts to visualize the data and estimates
+* Estimate future monthly expenses
