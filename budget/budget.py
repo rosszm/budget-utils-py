@@ -15,7 +15,7 @@ from sklearn.linear_model import LinearRegression
 
 
 def main() -> int:
-    """ 
+    """
     Runs the main program of the budget module. This program prints out the rent data and an 
     estimate for the current month.
 
@@ -26,7 +26,7 @@ def main() -> int:
     client_secret = file_dir_path + "/../credentials/client_secret.json"
     with open(file_dir_path + "/config.json") as config:
         sheet_key = json.load(config)["spreadsheet_key"]
-    
+
     # time how long it takes to retrieve the dataframe
     t0 = time.time()
     df = rent_df_from_spreadsheet(sheet_key, client_secret)
@@ -53,7 +53,7 @@ def rent_df_from_spreadsheet(sheet_key: str, client_secret: str) -> pd.DataFrame
     """
     Gets rent data from the google sheets spreadsheet with a key of `sheet_key` using the 
     credentials from the file `client_secret`.
-    
+
     Note: no guarantees are made about the order of the rows in the rent dataframe. To ensure the
     order of the rent data use `pd.DataFrame.sort_index(ascending=False)`, which will sort the data
     from most to least recent.
@@ -73,7 +73,7 @@ def rent_df_from_spreadsheet(sheet_key: str, client_secret: str) -> pd.DataFrame
     client = gspread.oauth(credentials_filename=client_secret)
     rent_sheet = client.open_by_key(sheet_key)
     worksheets = rent_sheet.worksheets()
-    
+
     # get the data from worksheets concurrently
     with concurrent.futures.ThreadPoolExecutor() as executor:
         month_futures = {executor.submit(month_df_from_wks, wks) for wks in worksheets}
@@ -88,12 +88,12 @@ def rent_df_from_spreadsheet(sheet_key: str, client_secret: str) -> pd.DataFrame
 
 def month_df_from_wks(wks: gspread.Worksheet) -> pd.DataFrame | None:
     """
-    Gets the monthly rent data from a given worksheet. Worksheets are expected to have titles with 
+    Gets the monthly rent data from a given worksheet. Worksheets are expected to have titles with
     the format "%b%Y" or "%B%Y" (e.g., "Apr2020", "April2020").
 
     Args:
         wks: the google sheets worksheet
-    
+
     Returns:
         A pandas dataframe containing the monthly rent data as a single row if the worksheet title
         is valid; otherwise `None`.
@@ -101,12 +101,12 @@ def month_df_from_wks(wks: gspread.Worksheet) -> pd.DataFrame | None:
     dt = parse_datetime_from_title(wks.title)
     if dt is None:
         return None
-    
+
     df = pd.DataFrame({"Year": [dt.year], "Month": [dt.month]})
     [data, groceries] = wks.batch_get(["A2:B6", "L2"], major_dimension="COLUMNS")
     expenses = [parse_money(value) for value in data[1]]
     df = pd.concat([df, pd.DataFrame([expenses], columns=data[0])], axis=1)
-   
+
     if len(groceries) > 0:
         df["Groceries"] = [parse_money(groceries[0][0])]
 
@@ -135,9 +135,9 @@ def parse_datetime_from_title(title: str) -> datetime | None:
 
 
 def parse_money(money: str) -> float:
-    """ 
+    """
     Parses a decimal value from a string representing an amount of money. Note `float` is not ideal
-    for representing money values, however, it simplifies operations and is accurate enough for 
+    for representing money values, however, it simplifies operations and is accurate enough for
     the purpose of the program.
     """
     return float(money.strip('$').replace(',', ''))
@@ -146,7 +146,7 @@ def parse_money(money: str) -> float:
 def estimate_rent(df: pd.DataFrame, dt: datetime | None = None) -> pd.DataFrame:
     """
     Estimates the cost of rent, utilities, and other expenses given a set of previous data and a
-    datetime representing the year and month. If no datetime is provided, this function uses the 
+    datetime representing the year and month. If no datetime is provided, this function uses the
     current month.
 
     Args:
@@ -163,7 +163,7 @@ def estimate_rent(df: pd.DataFrame, dt: datetime | None = None) -> pd.DataFrame:
         dt = datetime.now()
     else:
         assert dt >= datetime.now()
-    
+
     df = remove_outliers(df)
     df.fillna(df.mean(), inplace=True)
 
@@ -174,7 +174,7 @@ def estimate_rent(df: pd.DataFrame, dt: datetime | None = None) -> pd.DataFrame:
         model = LinearRegression()
         model.fit(x.values, y)
         estimate[expense] = model.predict([[dt.year, dt.month]])
-    
+
     return estimate.round(2)
 
 
