@@ -1,0 +1,27 @@
+[project]
+name = "budget"
+version = "1.0.0"
+description = "A set of budget tools and utilties."
+authors = [{name = "Zack Ross", email = "zmr@zacharyross.dev"}]
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "gspread >= 5.7.2",
+    "matplotlib >= 3.6.3",
+    "numpy >= 1.24.1",
+    "pandas >= 1.5.3",
+    "requests >= 2.28.2",
+    "scikit-learn >= 1.2.1",
+]
+
+[project.optional-dependencies]
+test = []
+
+[project.scripts]
+estimate-rent = "budget.scripts.estimate:run"
+update-db = "budget.scripts.update:run"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
